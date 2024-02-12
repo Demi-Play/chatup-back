@@ -1,17 +1,17 @@
     # create the avatar #
 # chat_settings = ChatSettings()
 # chat_settings.avatar = image_data
-from flask import Flask, jsonify, render_template, request, redirect
+from flask import Flask, jsonify, render_template, request
 from db import Session, User, OnlineUser, ChatSettings, Message
 from sqlalchemy import insert
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+import datetime as date
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 # session = Session()
 DB = SQLAlchemy(app)
-
 
 
 @app.after_request
@@ -41,20 +41,24 @@ def get_users():
 @app.route('/reg', methods=['POST'])
 def create_user():
     if request.method == 'POST':
-        name = request.form.get('name')
-        email = request.form.get('email')
-        password = request.form.get('password')
+        name = request.get_json().get('name')
+        email = request.get_json().get('email')
+        password = request.get_json().get('password')
         
         if name and email and password:
             # Проверка наличия пользователя с таким же email
-            existing_user = DB.session.query(User).filter_by(email=email).first()
+            existing_user = DB.session.query(User).filter_by(email=email, name=name, password=password).first()
             if existing_user:
                 return 'Ошибка запроса: пользователь с таким email уже существует'
-            
             user_data = User(name=name, email=email, password=password)
+            user_dict = {
+            'id': user_data.id,
+            'name': user_data.name,
+            'email': user_data.email,
+        }
             DB.session.add(user_data)
             DB.session.commit()
-            return redirect('http://localhost:5173/auth')
+            return jsonify(user_dict)
         else:
             return 'Ошибка запроса: не все поля заполнены'
     else:
@@ -64,24 +68,21 @@ def create_user():
 @app.route('/auth', methods=['POST'])
 def auth_user():
     if request.method == 'POST':
-        user = request.form['name']
-        password = request.form['password']
+        user = request.get_json().get('name')
+        password = request.get_json().get('password')
         user_data = DB.session.query(User).filter_by(name=user, password=password).first()
         if user_data is None:
             return 'Ошибка запроса: пользователь не найден'
-        
-        user_list = []
         
         user_dict = {
             'id': user_data.id,
             'name': user_data.name,
             'email': user_data.email,
         }
-        user_list.append(user_dict)
     
     else:
         return 'Ошибка запроса метода, кроме запроса на создание пользователя'
-    return redirect('http://localhost:5173/chat/' + str(user_data.id))
+    return jsonify(user_dict)
 
 @app.route('/profile', methods=['POST', 'GET'])
 def profile():
@@ -117,6 +118,19 @@ def get_messages():
         }
         message_list.append(message_dict)
     return jsonify(message_list)
+
+# post messages
+@app.route('/sendmsg', methods=['POST', 'GET'])
+def send_msg():
+    userfrom = request.get_json()['user_from']
+    userto = request.get_json()['user_to']
+    text = request.form.get('text')  # Исправлено
+    message = Message(text=text, user_from=userfrom, user_to=userto, timestamp=date.datetime.now())
+    DB.session.add(message)
+    DB.session.commit()
+    return 'Message received and added to the database.'
+
+
 
 #  
 @app.route('/online_users')
