@@ -7,6 +7,7 @@ from sqlalchemy import insert
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import datetime as date
+from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -84,19 +85,18 @@ def auth_user():
         return 'Ошибка запроса метода, кроме запроса на создание пользователя'
     return jsonify(user_dict)
 
-@app.route('/profile', methods=['POST', 'GET'])
+@app.route('/profile/<int:id>', methods=['POST', 'GET'])
 def profile():
     if request.method == 'POST':
-        user = request.get_json()['name']
-        password = request.get_json()['password']
-        user_data = DB.session.query(User).filter_by(name=user, password=password).first()
+        user = (request.get_json().get('name'))
+        # password = generate_password_hash(request.get_json().get('password'))
+        user_data = DB.session.query(User).filter_by(name=user).first()
         if user_data is None:
             return 'Ошибка запроса: пользователь не найден'
         user_dict = {
             'id': user_data.id,
             'name': user_data.name,
-            'email': user_data.email,
-            'password': user_data.password,
+            'email': user_data.email
         }
         return jsonify(user_dict)
     else:
@@ -120,17 +120,33 @@ def get_messages():
     return jsonify(message_list)
 
 # post messages
-@app.route('/sendmsg', methods=['POST', 'GET'])
+@app.route('/sendmsg', methods=['POST'])
 def send_msg():
     userfrom = request.get_json()['user_from']
     userto = request.get_json()['user_to']
-    text = request.form.get('text')  # Исправлено
+    text = request.get_json().get('text')  # Исправлено
     message = Message(text=text, user_from=userfrom, user_to=userto, timestamp=date.datetime.now())
     DB.session.add(message)
     DB.session.commit()
     return 'Message received and added to the database.'
 
+@app.route('/editmsg/<int:id>', methods=['POST', 'UPDATE'])
+def edit_msg():
+    id = request.json[int('msg_id')]
+    text = request.json[int('text')]
+    message = DB.session.query(Message).filter_by(id=id).first()
+    message.text = text
+    DB.session.commit()
 
+
+
+@app.route('/delmsg/<int:id>', methods=['POST', 'DELETE'])
+def delete_msg():
+    id = request.get_json()[int('msg_id')]
+    message = DB.session.query(Message).filter_by(id=id).first()
+    DB.session.delete(message)
+    DB.session.commit()
+    return 'message succesful deleted.'
 
 #  
 @app.route('/online_users')

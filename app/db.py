@@ -20,7 +20,7 @@ class User(Base):
     
 class Message(Base):
     __tablename__ = 'messages'
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True) # message id
     text = Column(String) # message text
     user_from = Column(Integer) # user id
