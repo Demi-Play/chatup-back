@@ -20,6 +20,8 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE'
+    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
+    response.headers['Access-Control-Allow-Methods'] = 'DELETE'
     return response
 
 
@@ -72,13 +74,21 @@ def auth_user():
         user = request.get_json().get('name')
         password = request.get_json().get('password')
         user_data = DB.session.query(User).filter_by(name=user, password=password).first()
-        if user_data is None:
-            return 'Ошибка запроса: пользователь не найден'
+        user_data_m = DB.session.query(User).filter_by(email=user, password=password).first()
+        def checkUser(user_data, user_data_m):
+            if user_data is None:
+                return user_data_m
+                if user_data_m is None:
+                    return None
+            else:
+                return user_data
+            
+        user_dt = checkUser(user_data=user_data, user_data_m=user_data_m)
         
         user_dict = {
-            'id': user_data.id,
-            'name': user_data.name,
-            'email': user_data.email,
+            'id': user_dt.id,
+            'name': user_dt.name,
+            'email': user_dt.email,
         }
     
     else:
@@ -130,19 +140,20 @@ def send_msg():
     DB.session.commit()
     return 'Message received and added to the database.'
 
-@app.route('/editmsg/<int:id>', methods=['POST', 'UPDATE'])
-def edit_msg():
-    id = request.json[int('msg_id')]
-    text = request.json[int('text')]
+@app.route('/editmsg/<int:id>', methods=['POST'])
+def edit_msg(id):
+    # id = request.get_json()[int('id')]
+    text = request.get_json()['text']
     message = DB.session.query(Message).filter_by(id=id).first()
     message.text = text
     DB.session.commit()
+    return 'message succesful updated'
 
 
 
-@app.route('/delmsg/<int:id>', methods=['POST', 'DELETE'])
-def delete_msg():
-    id = request.get_json()[int('msg_id')]
+@app.route('/delmsg/<int:id>', methods=['DELETE'])
+def delete_msg(id):
+    # id = request.get_json()[int('id')]
     message = DB.session.query(Message).filter_by(id=id).first()
     DB.session.delete(message)
     DB.session.commit()
