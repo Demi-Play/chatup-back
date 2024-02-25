@@ -1,18 +1,28 @@
     # create the avatar #
 # chat_settings = ChatSettings()
 # chat_settings.avatar = image_data
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, request
 from db import Session, User, OnlineUser, ChatSettings, Message
 from sqlalchemy import insert
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import datetime as date
 from werkzeug.security import generate_password_hash
+from flask_login import current_user, LoginManager, UserMixin, login_user, login_required, logout_user
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 # session = Session()
 DB = SQLAlchemy(app)
+
+# app.secret_key = '3131eg43'
+
+# login_manager = LoginManager()
+# login_manager.init_app(app)
+
+# @login_manager.user_loader
+# def load_user(user_id):
+#     return DB.session.query(User).get(user_id)
 
 
 @app.after_request
@@ -35,7 +45,7 @@ def get_users():
             'id': user.id,
             'name': user.name,
             'email': user.email,
-            'status': user.status
+            'status': user.is_active
         }
         user_list.append(user_dict)
     return jsonify(user_list)
@@ -75,25 +85,31 @@ def auth_user():
         password = request.get_json().get('password')
         user_data = DB.session.query(User).filter_by(name=user, password=password).first()
         user_data_m = DB.session.query(User).filter_by(email=user, password=password).first()
+        
         def checkUser(user_data, user_data_m):
             if user_data is None:
                 return user_data_m
-                if user_data_m is None:
-                    return None
+            if user_data_m is None:
+                return None
             else:
                 return user_data
             
         user_dt = checkUser(user_data=user_data, user_data_m=user_data_m)
+        
+        if user_dt is None:
+            return jsonify({'message': 'Ошибка запроса: пользователь не найден'})
         
         user_dict = {
             'id': user_dt.id,
             'name': user_dt.name,
             'email': user_dt.email,
         }
-    
+        # login_user(user_dt)
+        return jsonify(user_dict)
     else:
         return 'Ошибка запроса метода, кроме запроса на создание пользователя'
-    return jsonify(user_dict)
+
+
 
 @app.route('/profile/<int:id>', methods=['POST', 'GET'])
 def profile():
@@ -114,20 +130,26 @@ def profile():
 
 
 # 
-@app.route('/messages')
+@app.route('/messages', methods=['GET', 'POST'])
 def get_messages():
-    messages = DB.session.query(Message).all()
-    message_list = []
-    for message in messages:
-        message_dict = {
-            'id': message.id,
-            'text': message.text,
-            'user_from': message.user_from,
-            'user_to': message.user_to,
-            'timestamp': message.timestamp
-        }
-        message_list.append(message_dict)
-    return jsonify(message_list)
+    # if current_user.is_authenticated:
+        
+        # POFIXI MENYA
+        messages = DB.session.query(Message).filter((Message.user_from == current_user.id) | (Message.user_to == current_user.id)).all()
+        message_list = []
+        for message in messages:
+            message_dict = {
+                'id': message.id,
+                'text': message.text,
+                'user_from': message.user_from,
+                'user_to': message.user_to,
+                'timestamp': message.timestamp
+            }
+            message_list.append(message_dict)
+        return jsonify(message_list)
+    # else:
+    #     return jsonify({'message': 'User is not authenticated'})
+
 
 # post messages
 @app.route('/sendmsg', methods=['POST'])
@@ -187,6 +209,6 @@ def get_chat_settings():
 
 if __name__ == '__main__':
     with app.app_context():
-        # Весь код, связанный с Flask-приложением, должен быть здесь но как бы нахер надо
         DB.create_all()
+        # login_manager.user_loader(load_user)  # Добавить эту строку
         app.run(debug=True)

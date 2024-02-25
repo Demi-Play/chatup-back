@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, create_engine, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker
+from flask_login import UserMixin
 
 engine = create_engine('sqlite:///database.db', echo=True)
 
@@ -7,14 +8,15 @@ Base = declarative_base()
 
 
 
-class User(Base):
+class User(Base, UserMixin):
     __tablename__ = 'users'
     
     id = Column(Integer, primary_key=True, autoincrement=True) # user id
     name = Column(String) # prefer user name
     email = Column(String, unique=True) # mail@mail.com
     password = Column(String) # Password hashed
-    status = Column(String) # Online/ofline
+    is_active = Column(Boolean, default=True)
+    # status = Column(String) # Online/ofline
     last_login = Column(DateTime) # Последний раз был в сети только что
     chat_settings_id = Column(Integer, ForeignKey('chat_settings.id')) # Настройки чата
     
