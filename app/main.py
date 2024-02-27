@@ -135,7 +135,7 @@ def get_messages():
     # if current_user.is_authenticated:
         
         # POFIXI MENYA
-        messages = DB.session.query(Message).filter((Message.user_from == current_user.id) | (Message.user_to == current_user.id)).all()
+        messages = DB.session.query(Message).all()
         message_list = []
         for message in messages:
             message_dict = {
