@@ -8,7 +8,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import datetime as date
 from werkzeug.security import generate_password_hash
-from flask_login import current_user, LoginManager, UserMixin, login_user, login_required, logout_user
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -154,8 +153,8 @@ def get_messages():
 # post messages
 @app.route('/sendmsg', methods=['POST'])
 def send_msg():
-    userfrom = request.get_json()['user_from']
-    userto = request.get_json()['user_to']
+    userfrom = request.get_json().get()['user_from']
+    userto = request.get_json().get()['user_to']
     text = request.get_json().get('text')  # Исправлено
     message = Message(text=text, user_from=userfrom, user_to=userto, timestamp=date.datetime.now())
     DB.session.add(message)

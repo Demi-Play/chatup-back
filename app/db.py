@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, create_engine, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker
-from flask_login import UserMixin
 
 engine = create_engine('sqlite:///database.db', echo=True)
 
@@ -8,7 +7,7 @@ Base = declarative_base()
 
 
 
-class User(Base, UserMixin):
+class User(Base):
     __tablename__ = 'users'
     
     id = Column(Integer, primary_key=True, autoincrement=True) # user id
