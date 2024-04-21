@@ -10,7 +10,11 @@ import datetime as date
 from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
+CORS(app) 
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # session = Session()
 DB = SQLAlchemy(app)
 
@@ -29,7 +33,7 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE'
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
+    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5174'
     response.headers['Access-Control-Allow-Methods'] = 'DELETE'
     return response
 
@@ -210,4 +214,4 @@ if __name__ == '__main__':
     with app.app_context():
         DB.create_all()
         # login_manager.user_loader(load_user)  # Добавить эту строку
-        app.run(debug=True)
+        app.run(debug=True, port=5003)
