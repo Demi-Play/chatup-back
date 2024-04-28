@@ -5,8 +5,6 @@ engine = create_engine('sqlite:///database.db', echo=True)
 
 Base = declarative_base()
 
-
-
 class User(Base):
     __tablename__ = 'users'
     
@@ -15,7 +13,6 @@ class User(Base):
     email = Column(String, unique=True) # mail@mail.com
     password = Column(String) # Password hashed
     is_active = Column(Boolean, default=True)
-    # status = Column(String) # Online/ofline
     last_login = Column(DateTime) # Последний раз был в сети только что
     chat_settings_id = Column(Integer, ForeignKey('chat_settings.id')) # Настройки чата
     

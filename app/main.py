@@ -18,22 +18,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # session = Session()
 DB = SQLAlchemy(app)
 
-# app.secret_key = '3131eg43'
-
-# login_manager = LoginManager()
-# login_manager.init_app(app)
-
-# @login_manager.user_loader
-# def load_user(user_id):
-#     return DB.session.query(User).get(user_id)
-
-
 @app.after_request
 def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE'
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5174'
+    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
     response.headers['Access-Control-Allow-Methods'] = 'DELETE'
     return response
 
@@ -133,33 +123,40 @@ def profile():
 
 
 # 
-@app.route('/messages', methods=['GET', 'POST'])
-def get_messages():
-    # if current_user.is_authenticated:
-        
-        # POFIXI MENYA
-        messages = DB.session.query(Message).all()
+@app.route('/messages/<int:id>', methods=['GET'])
+def get_messages(id):
+    if request.method == 'GET':
+        user_id = request.args.get('user_id')  # Получаем ID пользователя, для которого запрашиваем сообщения
+        if user_id is not None:
+            messages_from = DB.session.query(Message).filter_by(user_from=user_id).all()
+            messages_to = DB.session.query(Message).filter_by(user_to=user_id).all()
+            messages = messages_from + messages_to
+        else:
+            # Если не указан конкретный пользователь, получаем все сообщения
+            messages = DB.session.query(Message).all()
+
         message_list = []
         for message in messages:
+            user = DB.session.query(User).filter_by(id=message.user_from).first()
             message_dict = {
                 'id': message.id,
                 'text': message.text,
                 'user_from': message.user_from,
                 'user_to': message.user_to,
-                'timestamp': message.timestamp
+                'timestamp': message.timestamp,
+                'userFrom': user.name
             }
             message_list.append(message_dict)
+
         return jsonify(message_list)
-    # else:
-    #     return jsonify({'message': 'User is not authenticated'})
 
 
 # post messages
 @app.route('/sendmsg', methods=['POST'])
 def send_msg():
-    userfrom = request.get_json().get()['user_from']
-    userto = request.get_json().get()['user_to']
-    text = request.get_json().get('text')  # Исправлено
+    userfrom = request.get_json()['user_from']
+    userto = request.get_json()['user_to']
+    text = request.get_json()['text']  # Исправлено
     message = Message(text=text, user_from=userfrom, user_to=userto, timestamp=date.datetime.now())
     DB.session.add(message)
     DB.session.commit()
@@ -174,8 +171,6 @@ def edit_msg(id):
     DB.session.commit()
     return 'message succesful updated'
 
-
-
 @app.route('/delmsg/<int:id>', methods=['DELETE'])
 def delete_msg(id):
     # id = request.get_json()[int('id')]
@@ -183,7 +178,6 @@ def delete_msg(id):
     DB.session.delete(message)
     DB.session.commit()
     return 'message succesful deleted.'
-
 #  
 @app.route('/online_users')
 def get_online_users():
@@ -195,7 +189,6 @@ def get_online_users():
         }
         online_user_list.append(online_user_dict)
     return jsonify(online_user_list)
-
 # 
 @app.route('/chat_settings')
 def get_chat_settings():
